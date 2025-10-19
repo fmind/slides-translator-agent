@@ -1,0 +1,41 @@
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+
+# PROJECT
+
+[project]
+name = "slides_translator_agent"
+version = "1.0.0"
+requires-python = ">=3.13"
+dependencies = [
+    "google-adk[a2a]>=1.16.0",
+]
+
+# GROUPS
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.0.1",
+    "pre-commit>=4.3.0",
+    "ruff>=0.14.0",
+    "rust-just>=1.43.0",
+    "ty>=0.0.1a22",
+]
+
+# TOOLS
+
+[tool.ruff]
+fix = true
+line-length = 100
+
+[tool.ty.rules]
+possibly-missing-attribute = "ignore"
+
+[tool.uv.build-backend]
+module-name = "slides_translator_agent"
+module-root = ""
+
+# SYSTEMS
+
+[build-system]
+requires = ["uv_build>=0.9.4,<0.10.0"]
+build-backend = "uv_build"

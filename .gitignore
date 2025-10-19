@@ -1,0 +1,12 @@
+# https://git-scm.com/docs/gitignore
+
+# Cache
+.ruff_cache/
+
+# Environs
+.env
+/.venv/
+
+# Python
+*.py[cod]
+__pycache__/
