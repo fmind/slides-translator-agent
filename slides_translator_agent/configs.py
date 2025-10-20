@@ -2,7 +2,6 @@
 
 # %% IMPORTS
 
-import logging
 import os
 
 # %% CONFIGS
@@ -15,12 +14,7 @@ AUTHENTICATION_CLIENT_SECRET = os.environ["AUTHENTICATION_CLIENT_SECRET"]
 # %% Concurrent
 
 CONCURRENT_TRANSLATION_WORKERS = int(os.getenv("CONCURRENT_TRANSLATION_WORKERS", "10"))
-CONCURRENT_TRANSLATIONS_PER_WORKER = int(os.getenv("CONCURRENT_TRANSLATIONS_PER_WORKER", "20"))
-
-# %% Logging
-
-LOGGING_LEVEL = getattr(logging, os.getenv("LOGGING_LEVEL", "INFO").upper())
-LOGGING_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+CONCURRENT_SLIDES_BATCH_UPDATES = int(os.getenv("CONCURRENT_SLIDES_BATCH_UPDATES", "50"))
 
 # %% Models
 

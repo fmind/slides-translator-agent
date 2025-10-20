@@ -2,17 +2,12 @@
 
 # %% IMPORTS
 
-import logging
 import textwrap
 
 from google.adk.agents import LlmAgent
 from google.genai.types import GenerateContentConfig
 
 from slides_translator_agent import configs, tools
-
-# %% LOGGING
-
-logging.basicConfig(level=configs.LOGGING_LEVEL, format=configs.LOGGING_FORMAT)
 
 # %% AGENTS
 
@@ -41,6 +36,6 @@ root_agent = LlmAgent(
             - If the user asks a question that is not related to translating a Google Slides presentation, gently guide them back to your core function.
             - Respond with: "My purpose is to translate Google Slides presentations. I can't help with that request, but I'd be happy to translate a presentation for you."
     """),
-    tools=[tools.translate_presentation],
     generate_content_config=GenerateContentConfig(temperature=0.0),
+    tools=[tools.translate_presentation],
 )
