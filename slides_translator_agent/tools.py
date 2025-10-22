@@ -17,34 +17,23 @@ from googleapiclient.discovery import build
 
 from slides_translator_agent import auths, configs
 
+# %% LOGGERS
+
+logger = logging.getLogger(__name__)
+
 # %% HELPERS
 
 
-def setup_logger(presentation_id: str, tool_context: ToolContext) -> logging.Logger:
-    """Initialize and configure a logger for the tool."""
-    invocation_id = tool_context.invocation_id
-    user_id = tool_context.session.user_id
-    session_id = tool_context.session.id
-    logger_name = (
-        f"{__name__}:"
-        f"user:{user_id},"
-        f"session:{session_id},"
-        f"invocation:{invocation_id},"
-        f"presentation:{presentation_id}"
-    )
-    return logging.getLogger(logger_name)
-
-
-def negotiate_creds(tool_context: ToolContext, logger: logging.Logger) -> Credentials | dict:
+def negotiate_creds(tool_context: ToolContext) -> Credentials | dict:
     """Handle the OAuth 2.0 flow to get valid credentials."""
-    logger.info("Negotiating credentials")
-    # 1. Check for cached credentials in the tool state
+    logger.info("Negotiating credentials using oauth 2.0")
+    # Check for cached credentials in the tool state
     if cached_token := tool_context.state.get(configs.TOKEN_CACHE_KEY):
-        logger.debug("Found cached token")
+        logger.debug("Found cached token in tool context state")
         try:
-            creds = Credentials.from_authorized_user_info(cached_token, auths.SCOPES.keys())
+            creds = Credentials.from_authorized_user_info(cached_token, list(auths.SCOPES.keys()))
             if creds.valid:
-                logger.debug("Cached credentials are valid")
+                logger.debug("Cached credentials are valid, returning credentials")
                 return creds
             if creds.expired and creds.refresh_token:
                 logger.debug("Cached credentials expired, attempting refresh")
@@ -55,7 +44,7 @@ def negotiate_creds(tool_context: ToolContext, logger: logging.Logger) -> Creden
         except Exception as error:
             logger.error(f"Error loading/refreshing cached credentials: {error}")
             tool_context.state[configs.TOKEN_CACHE_KEY] = None  # reset cache
-    # 2. If no valid cached credentials, check for auth response
+    # If no valid cached credentials, check for auth response
     logger.debug("No valid cached token. Checking for auth response")
     if exchanged_creds := tool_context.get_auth_response(auths.AUTH_CONFIG):
         logger.debug("Received auth response, creating credentials")
@@ -72,7 +61,7 @@ def negotiate_creds(tool_context: ToolContext, logger: logging.Logger) -> Creden
         tool_context.state[configs.TOKEN_CACHE_KEY] = json.loads(creds.to_json())
         logger.debug("New credentials created and cached successfully")
         return creds
-    # 3. If no auth response, initiate auth request
+    # If no auth response, initiate auth request
     logger.debug("No credentials available. Requesting user authentication")
     tool_context.request_credential(auths.AUTH_CONFIG)
     logger.info("Awaiting user authentication")
@@ -80,16 +69,11 @@ def negotiate_creds(tool_context: ToolContext, logger: logging.Logger) -> Creden
 
 
 def copy_presentation(
-    drive_service,
-    slides_service,
-    presentation_id: str,
-    target_language: str,
-    logger: logging.Logger,
+    drive_service, slides_service, presentation_id: str, target_language: str
 ) -> dict[str, str]:
     """Copy the original presentation and return details of the new one."""
     logger.info(f"Copying presentation '{presentation_id}' for target language '{target_language}'")
     # original presentation
-    logger.debug(f"Getting original presentation by ID: '{presentation_id}'")
     original_presentation = (
         slides_service.presentations().get(presentationId=presentation_id).execute()
     )
@@ -97,12 +81,9 @@ def copy_presentation(
     # copy presentation
     copy_presentation_title = f"{original_presentation_title} ({target_language})"
     logger.debug(
-        f"Original title: '{original_presentation_title}', New title: '{copy_presentation_title}'"
+        f"Copying from original title: '{original_presentation_title}', to new title: '{copy_presentation_title}'"
     )
     copy_presentation_body = {"name": copy_presentation_title}
-    logger.debug(
-        f"Copying file with ID '{presentation_id}' and new title '{copy_presentation_title}'"
-    )
     copy_presentation = (
         drive_service.files().copy(fileId=presentation_id, body=copy_presentation_body).execute()
     )
@@ -114,26 +95,25 @@ def copy_presentation(
         "presentation_title": copy_presentation_title,
     }
     logger.info(
-        f"Successfully copied presentation. New presentation ID: '{copy_presentation_id}',"
+        f"Successfully copied presentation '{presentation_id}'. New ID: '{copy_presentation_id}',"
         f" URL: '{copy_presentation_url}', Title: '{copy_presentation_title}'"
     )
     return result
 
 
-def initialize_services(creds: Credentials, logger: logging.Logger) -> tuple[Any, Any, Client]:
+def initialize_services(creds: Credentials) -> tuple[Any, Any, Client]:
     """Initialize and return Google API services."""
-    logger.info("Initializing Google API services")
-    drive_service = build("drive", "v3", credentials=creds)
+    project_id, location = configs.PROJECT_ID, configs.PROJECT_LOCATION
+    logger.info(f"Initializing Google API services on '{project_id}' in '{location}'")
+    genai_service = Client(project=project_id, location=location, vertexai=True)
     slides_service = build("slides", "v1", credentials=creds)
-    genai_service = Client(
-        project=configs.PROJECT_ID, location=configs.PROJECT_LOCATION, vertexai=True
-    )
-    logger.info("Google API services initialized")
+    drive_service = build("drive", "v3", credentials=creds)
+    logger.info(f"Google API services initialized on '{project_id}' in '{location}'")
     return drive_service, slides_service, genai_service
 
 
 def _extract_text_from_page_elements(
-    page_elements: list, slide_id: str, index: dict[str, list[str]]
+    page_elements: list, slide_id: str, index: dict[str, set[str]]
 ):
     """Recursively extract text from page elements."""
     for element in page_elements:
@@ -155,18 +135,15 @@ def _extract_text_from_page_elements(
                     )
 
 
-def index_presentation_texts(
-    slides_service, presentation_id: str, logger: logging.Logger
-) -> dict[str, list[str]]:
-    """Extract all text run elements from a presentation to a location index."""
+def index_presentation_texts(slides_service, presentation_id: str) -> dict[str, set[str]]:
+    """Index text elements from a presentation with their slide ID."""
     logger.info(f"Extracting text from presentation: '{presentation_id}'")
     presentation = slides_service.presentations().get(presentationId=presentation_id).execute()
     slides = presentation.get("slides", [])
     logger.debug(f"Found {len(slides)} slides in '{presentation_id}'")
     index = {}
     for slide in slides:
-        slide_id = slide["objectId"]
-        _extract_text_from_page_elements(slide.get("pageElements", []), slide_id, index)
+        _extract_text_from_page_elements(slide.get("pageElements", []), slide["objectId"], index)
     logger.info(
         f"Found {len(index)} unique texts across {len(slides)} slides in '{presentation_id}'"
     )
@@ -174,13 +151,9 @@ def index_presentation_texts(
 
 
 def translate_texts_with_genai(
-    genai_service: Client,
-    target_language: str,
-    extra_context: str,
-    texts: list[str],
-    logger: logging.Logger,
-) -> tuple[dict, list]:
-    """Translate a list of texts"""
+    genai_service: Client, target_language: str, extra_context: str, texts: list[str]
+) -> tuple[dict, dict]:
+    """Translate a list of text strings using the Generative AI service."""
     translations = {}
     total_usages = {
         "input_tokens": 0,
@@ -194,7 +167,7 @@ def translate_texts_with_genai(
     instructions = (
         f"Translate the following text to '{target_language}' as accurately as possible. "
         "Do not add any preamble, intro, or explanation; just return the translated text. "
-        f"Use the following user context to help perform the translation task: '{extra_context}'"
+        f"Use the following user context to perform the translation task: '{extra_context}'"
     )
 
     def translate_text(text):
@@ -225,17 +198,13 @@ def translate_texts_with_genai(
                 total_usages["output_tokens"] += usage.candidates_token_count
             if translation:
                 translations[text] = translation
-    logger.info(f"Finished translating {len(translations)} out of {len(texts)} texts")
+    logger.info(f"Finished translating {len(translations)} items out of {len(texts)} texts")
     logger.info(f"Total token usage for translations: {total_usages}")
     return translations, total_usages
 
 
 def replace_text_in_presentation(
-    slides_service,
-    presentation_id: str,
-    translations: dict[str, str],
-    index: dict[str, list[str]],
-    logger: logging.Logger,
+    slides_service, presentation_id: str, translations: dict[str, str], index: dict[str, set[str]]
 ) -> int:
     """Replace all text elements in the presentation with the provided translations."""
     logger.info(f"Updating presentation '{presentation_id}' with {len(translations)} translations")
@@ -270,7 +239,7 @@ def replace_text_in_presentation(
             for reply in response.get("replies", [])
         )
         total_changes += changes
-    logger.info(f"Finished replace texts in '{presentation_id}'. Total changes: {total_changes}")
+    logger.info(f"Finished replacing texts in '{presentation_id}'. Total changes: {total_changes}")
     return total_changes
 
 
@@ -278,10 +247,7 @@ def replace_text_in_presentation(
 
 
 def translate_presentation(
-    presentation_id: str,
-    target_language: str,
-    slides_context: str,
-    tool_context: ToolContext,
+    presentation_id: str, target_language: str, slides_context: str, tool_context: ToolContext
 ) -> dict:
     """Copy and translate a Google Slides presentation and returns the new presentation URL.
 
@@ -298,33 +264,31 @@ def translate_presentation(
         A dictionary with information about the translation process,
         may return a demand for a user authentication request
     """
-    # Logger initialization
-    logger = setup_logger(presentation_id, tool_context)
     logger.info(
-        f"Translating presentation '{presentation_id}' to '{target_language}' for '{slides_context}'"
+        f"Translating presentation '{presentation_id}' to '{target_language}' about '{slides_context}'"
     )
     # Negociate auth credentials
-    auth_result = negotiate_creds(tool_context, logger=logger)
+    auth_result = negotiate_creds(tool_context)
     if isinstance(auth_result, dict):  # new auth request
         return auth_result
     creds = auth_result
     # Initialize Google API services
-    drive_service, slides_service, genai_service = initialize_services(creds, logger)
+    drive_service, slides_service, genai_service = initialize_services(creds)
     # Copy the original presentation
     new_presentation = copy_presentation(
-        drive_service, slides_service, presentation_id, target_language, logger
+        drive_service, slides_service, presentation_id, target_language
     )
     new_presentation_id = new_presentation["presentation_id"]
     new_presentation_url = new_presentation["presentation_url"]
     # Extract all text run elements
-    index = index_presentation_texts(slides_service, new_presentation_id, logger)
+    index = index_presentation_texts(slides_service, new_presentation_id)
     # Translating text to new language
     translations, total_usages = translate_texts_with_genai(
-        genai_service, target_language, slides_context, list(index.keys()), logger
+        genai_service, target_language, slides_context, list(index.keys())
     )
     # Execute batch update to replace all text
     total_changes = replace_text_in_presentation(
-        slides_service, new_presentation_id, translations, index, logger
+        slides_service, new_presentation_id, translations, index
     )
     # Report new presentation URL and statistics
     report = {

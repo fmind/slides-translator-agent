@@ -1,6 +1,6 @@
 # https://git-scm.com/docs/gitignore
 
-# Cache
+# Caches
 .ruff_cache/
 
 # Environs

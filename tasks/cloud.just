@@ -9,7 +9,7 @@ cloud-auth:
 
 # enable cloud services
 [group('cloud')]
-cloud-services:
+cloud-services: cloud-settings
     gcloud services enable aiplatform.googleapis.com
     gcloud services enable cloudbuild.googleapis.com
     gcloud services enable run.googleapis.com
@@ -22,5 +22,5 @@ cloud-settings:
 
 # create cloud bucket storage
 [group('cloud')]
-cloud-storage:
+cloud-storage: cloud-settings
     gcloud storage buckets create $STAGING_BUCKET --location=$GOOGLE_CLOUD_LOCATION

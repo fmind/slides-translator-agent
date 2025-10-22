@@ -12,7 +12,8 @@ agent-deploy: agent-deploy-on-agent-engine agent-deploy-on-cloud-run
 agent-deploy-on-agent-engine: agent-requirements
     uv run adk deploy agent_engine {{env('AGENT_ENGINE_ID', '') && "--agent_engine_id=" + env('AGENT_ENGINE_ID')}} \
         --project=$GOOGLE_CLOUD_PROJECT --region=$GOOGLE_CLOUD_LOCATION --staging_bucket=$STAGING_BUCKET \
-        --trace_to_cloud --env_file=.env --requirements_file={{AGENT}}/requirements.txt {{AGENT}}
+        --trace_to_cloud --env_file=.env --requirements_file={{AGENT}}/requirements.txt \
+        --adk_app/{{AGENT}}/agent_engine_app.py {{AGENT}}
 
 # deploy the agent on cloud run
 [group('agent')]
@@ -28,5 +29,5 @@ agent-requirements:
 
 # serve the agent web
 [group('agent')]
-agent-web:
-    uv run adk web --reload --reload_agents
+agent-web log_level="INFO":
+    uv run adk web --a2a --reload --reload_agents --log_level={{log_level}}
