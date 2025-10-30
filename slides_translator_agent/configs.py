@@ -2,6 +2,7 @@
 
 # %% IMPORTS
 
+import logging
 import os
 
 # %% CONFIGS
@@ -16,6 +17,10 @@ AUTHENTICATION_CLIENT_SECRET = os.environ["AUTHENTICATION_CLIENT_SECRET"]
 CONCURRENT_TRANSLATION_WORKERS = int(os.getenv("CONCURRENT_TRANSLATION_WORKERS", "10"))
 CONCURRENT_SLIDES_BATCH_UPDATES = int(os.getenv("CONCURRENT_SLIDES_BATCH_UPDATES", "50"))
 
+# %% Logging
+
+LOGGING_LEVEL = getattr(logging, os.getenv("LOGGING_LEVEL", "INFO").upper(), logging.INFO)
+
 # %% Models
 
 MODEL_NAME_AGENT = os.getenv("MODEL_NAME_AGENT", "gemini-2.5-flash")
@@ -28,4 +33,4 @@ PROJECT_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
 
 # %% Tokens
 
-TOKEN_CACHE_KEY = os.getenv("TOKEN_CACHE_KEY", "user:slides_translator_token")
+TOKEN_CACHE_KEY = os.getenv("TOKEN_CACHE_KEY", "temp:slides-translator-auth")
