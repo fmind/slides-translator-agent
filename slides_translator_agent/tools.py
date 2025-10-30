@@ -30,20 +30,33 @@ def negotiate_creds(tool_context: ToolContext) -> Credentials | dict:
     # Check for cached credentials in the tool state
     if cached_token := tool_context.state.get(configs.TOKEN_CACHE_KEY):
         logger.debug("Found cached token in tool context state")
-        try:
-            creds = Credentials.from_authorized_user_info(cached_token, list(auths.SCOPES.keys()))
-            if creds.valid:
-                logger.debug("Cached credentials are valid, returning credentials")
-                return creds
-            if creds.expired and creds.refresh_token:
-                logger.debug("Cached credentials expired, attempting refresh")
-                creds.refresh(Request())
-                tool_context.state[configs.TOKEN_CACHE_KEY] = json.loads(creds.to_json())
-                logger.debug("Credentials refreshed and cached successfully")
-                return creds
-        except Exception as error:
-            logger.error(f"Error loading/refreshing cached credentials: {error}")
-            tool_context.state[configs.TOKEN_CACHE_KEY] = None  # reset cache
+        if isinstance(cached_token, dict):
+            logger.debug("Cached token is a dictionary, treating as AuthCredential.")
+            try:
+                creds = Credentials.from_authorized_user_info(
+                    cached_token, list(auths.SCOPES.keys())
+                )
+                if creds.valid:
+                    logger.debug("Cached credentials are valid, returning credentials")
+                    return creds
+                if creds.expired and creds.refresh_token:
+                    logger.debug("Cached credentials expired, attempting refresh")
+                    creds.refresh(Request())
+                    tool_context.state[configs.TOKEN_CACHE_KEY] = json.loads(creds.to_json())
+                    logger.debug("Credentials refreshed and cached successfully")
+                    return creds
+            except Exception as error:
+                logger.error(f"Error loading/refreshing cached credentials: {error}")
+                tool_context.state[configs.TOKEN_CACHE_KEY] = None  # reset cache
+        elif isinstance(cached_token, str):
+            logger.debug("Found raw access token in tool context state.")
+            # This creates a temporary credential object from the token
+            # Note: This credential will not be refreshed if it expires
+            return Credentials(token=cached_token)
+        else:
+            raise ValueError(
+                f"Invalid cached token type. Expected dict or str, got {type(cached_token)}"
+            )
     # If no valid cached credentials, check for auth response
     logger.debug("No valid cached token. Checking for auth response")
     if exchanged_creds := tool_context.get_auth_response(auths.AUTH_CONFIG):
@@ -85,7 +98,9 @@ def copy_presentation(
     )
     copy_presentation_body = {"name": copy_presentation_title}
     copy_presentation = (
-        drive_service.files().copy(fileId=presentation_id, body=copy_presentation_body).execute()
+        drive_service.files()
+        .copy(fileId=presentation_id, body=copy_presentation_body, supportsAllDrives=True)
+        .execute()
     )
     copy_presentation_id = copy_presentation["id"]
     copy_presentation_url = f"https://docs.google.com/presentation/d/{copy_presentation_id}/edit"
