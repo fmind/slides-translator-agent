@@ -2,6 +2,7 @@
 
 # %% IMPORTS
 
+import logging
 import textwrap
 
 from google.adk.agents import LlmAgent
@@ -9,8 +10,11 @@ from google.genai.types import GenerateContentConfig
 
 from slides_translator_agent import configs, tools
 
-# %% AGENTS
+# %% LOGGING
 
+logging.basicConfig(level=configs.LOGGING_LEVEL)
+
+# %% AGENTS
 
 root_agent = LlmAgent(
     name="slides_translator_agent",
