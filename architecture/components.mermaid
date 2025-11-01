@@ -1,0 +1,26 @@
+graph TD
+    classDef ui fill:#e0f7fa,stroke:#00acc1,stroke-width:2px,color:#263238;
+    classDef agent fill:#e3f2fd,stroke:#42a5f5,stroke-width:2px,color:#263238;
+    classDef service fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#263238;
+    classDef api fill:#fffde7,stroke:#ffb300,stroke-width:2px,color:#263238;
+
+    subgraph Local Development
+        ADK_Web_UI[ADK Web UI ✨]:::ui
+        Agent_Code[Agent Code  in ADK 🧑‍💻]:::agent
+        ADK_Web_UI -- Input & Test 🧪 --> Agent_Code
+    end
+
+    subgraph Google Cloud Platform Production
+        Vertex_AI_Engine(Vertex AI Agent Engine 🤖):::agent
+        Gemini_Enterprise_UI[Gemini Enterprise Web UI 💼]:::ui
+        OAuth[OAuth Credentials 🔑]:::service
+        Google_APIs{{Google APIs Drive & Slides 📄}}:::api
+        Gemini_Model[Gemini Model 🧠]:::service
+
+        Agent_Code -- Deploys To 🚀 --> Vertex_AI_Engine
+        Gemini_Enterprise_UI -- User Access 🌐 --> Vertex_AI_Engine
+
+        Vertex_AI_Engine -- Authenticates via ✅ --> OAuth
+        Vertex_AI_Engine -- Manages Presentations 📝 --> Google_APIs
+        Vertex_AI_Engine -- Translates Text via 💬 --> Gemini_Model
+    end
