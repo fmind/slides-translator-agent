@@ -1,9 +1,5 @@
 # Slides Translator Agent
 
-[![Build Status](https://github.com/fmind/slides-translator-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/fmind/slides-translator-agent/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/fmind/slides-translator-agent)](https://github.com/fmind/slides-translator-agent/blob/main/LICENSE.txt)
-[![Release](https://img.shields.io/github/v/release/fmind/slides-translator-agent)](https://github.com/fmind/slides-translator-agent/releases)
-
 **Slides Translator** is an AI-powered agent designed to automatically translate the content of a Google Slides presentation into a specified language.
 
 It leverages Large Language Models (LLMs) through the Google AI platform and uses the Google Drive and Google Slides APIs to read the original presentation and create a translated copy.
