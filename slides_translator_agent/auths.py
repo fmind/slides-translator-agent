@@ -6,7 +6,7 @@ from fastapi.openapi.models import OAuth2, OAuthFlowAuthorizationCode, OAuthFlow
 from google.adk.auth.auth_credential import AuthCredential, AuthCredentialTypes, OAuth2Auth
 from google.adk.auth.auth_tool import AuthConfig
 
-from slides_translator_agent import configs
+from . import configs
 
 # %% CONFIGS
 

@@ -8,7 +8,7 @@ import textwrap
 from google.adk.agents import LlmAgent
 from google.genai.types import GenerateContentConfig
 
-from slides_translator_agent import configs, tools
+from . import configs, tools
 
 # %% LOGGING
 

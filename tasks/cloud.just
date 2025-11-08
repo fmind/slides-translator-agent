@@ -12,7 +12,9 @@ cloud-auth:
 cloud-services: cloud-settings
     gcloud services enable aiplatform.googleapis.com
     gcloud services enable cloudbuild.googleapis.com
+    gcloud services enable cloudresourcemanager.googleapis.com
     gcloud services enable run.googleapis.com
+    gcloud services enable telemetry.googleapis.com
 
 # configure cloud settings
 [group('cloud')]

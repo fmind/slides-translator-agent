@@ -7,18 +7,19 @@ name = "slides_translator_agent"
 version = "1.0.0"
 requires-python = ">=3.13"
 dependencies = [
-    "google-adk[a2a]>=1.16.0",
+    "google-adk[a2a]>=1.18.0",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.126.1",
 ]
 
 # GROUPS
 
 [dependency-groups]
 dev = [
-    "ipykernel>=7.0.1",
+    "ipykernel>=7.1.0",
     "pre-commit>=4.3.0",
-    "ruff>=0.14.0",
+    "ruff>=0.14.4",
     "rust-just>=1.43.0",
-    "ty>=0.0.1a22",
+    "ty>=0.0.1a25",
 ]
 
 # TOOLS

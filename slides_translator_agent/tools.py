@@ -15,7 +15,7 @@ from google.genai.types import GenerateContentConfig, ThinkingConfig
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-from slides_translator_agent import auths, configs
+from . import auths, configs
 
 # %% LOGGERS
 
