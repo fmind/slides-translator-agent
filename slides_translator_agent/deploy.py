@@ -39,8 +39,8 @@ print()
 # %% CONFIGS
 
 config = {
-    "display_name": "Agentspace Onboarding Agent",
-    "description": "Help users to onboard on Decathlon Agentspace by answering their questions",
+    "display_name": "Slides Translator Agent",
+    "description": "Translate Google Slides automatically with Generative AI.",
     "requirements": os.path.join(AGENT_FOLDER, "requirements.txt"),
     "extra_packages": [os.path.basename(AGENT_FOLDER)],
     "staging_bucket": STAGING_BUCKET,
